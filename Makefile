@@ -1,7 +1,8 @@
 # Compiler and flags
 CC := gcc
 CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os
-LDFLAGS := -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2
+CPPFLAGS := -I/usr/include/freetype2
+LDFLAGS := -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2 -lfreetype
 
 # Directories
 SRC_DIR := src
