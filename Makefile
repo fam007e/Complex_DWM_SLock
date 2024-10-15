@@ -1,55 +1,66 @@
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -std=c99 -Iinclude -I/usr/include/freetype2 -v
-LDFLAGS = -lX11 -lXrandr -lXft -lcrypt -v
+CC := gcc
+CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os
+LDFLAGS := -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2
 
 # Directories
-SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
-INCLUDE_DIR = include
-ASSETS_DIR = assets
-CONFIG_DIR = config
+SRC_DIR := src
+ASSET_DIR := assets
+OBJ_DIR := obj
 
 # Source and object files
-SRC = $(wildcard $(SRC_DIR)/*.c)
-OBJ = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-# Target executable
-TARGET = $(BIN_DIR)/complex_dwm_slock
+# Output binary
+TARGET := slock
 
-# Install directories
-PREFIX = /usr/local
-BINDIR = $(PREFIX)/bin
-CONFDIR = /etc/complex_dwm_slock
+# Version information
+CURRENT_DATE := $(shell date +"%Y.%m.%d")
+GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_VERSION := $(CURRENT_DATE).$(GIT_HASH)
+CFLAGS += -DBUILD_VERSION=\"$(BUILD_VERSION)\"
+
+# Installation paths
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
 
 # Default target
+.PHONY: all
 all: $(TARGET)
 
-# Create the target executable
-$(TARGET): $(OBJ)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
+# Linking
+$(TARGET): $(OBJ) | $(OBJ_DIR)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-# Compile source files into object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compilation
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/config.h | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Clean up the build artifacts
-clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+# Create object directory
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
-# Install the executable and configuration files
-install: all
-	@mkdir -p $(BINDIR) $(CONFDIR)
-	cp -f $(TARGET) $(BINDIR)
-	cp -f $(CONFIG_DIR)/* $(CONFDIR)
+# Install
+.PHONY: install
+install: $(TARGET)
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)
+	chmod u+s $(DESTDIR)$(BINDIR)/$(TARGET)
 
-# Uninstall the executable and configuration files
+# Uninstall
+.PHONY: uninstall
 uninstall:
-	rm -f $(BINDIR)/complex_dwm_slock
-	rm -rf $(CONFDIR)
+	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
 
-# PHONY targets
-.PHONY: all clean install uninstall
+# Clean
+.PHONY: clean
+clean:
+	rm -rf $(TARGET) $(OBJ_DIR)
+
+# Debug information
+.PHONY: debug
+debug:
+	@echo "Source files: $(SRC)"
+	@echo "Object files: $(OBJ)"
+	@echo "Build version: $(BUILD_VERSION)"
