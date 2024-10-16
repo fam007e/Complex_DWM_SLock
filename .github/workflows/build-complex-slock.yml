@@ -1,75 +1,47 @@
-name: Build and Release Complex SLock
+name: Release Complex SLock Binary
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+    paths:
+      - src/config.h
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ hashFiles('**/Makefile') }}
-        restore-keys: |
-          ${{ runner.os }}-apt-
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get upgrade -y
+          sudo apt-get install -y build-essential libx11-dev libxext-dev libxrandr-dev libxft-dev libimlib2-dev libfreetype6-dev libxinerama-dev libxcb-xinerama0-dev libpam0g-dev
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          libx11-dev \
-          libxext-dev \
-          libxrandr-dev \
-          libxft-dev \
-          libimlib2-dev \
-          libfreetype6-dev \
-          libxinerama-dev \
-          libxcb-xinerama0-dev \
-          libpam0g-dev
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get install -y gh
 
-    - name: Clean previous build
-      run: make clean
+      - name: Authenticate GitHub CLI
+        run: |
+          echo "${{ secrets.SLOCK_TOKEN }}" | gh auth login --with-token
 
-    - name: Build
-      run: make
+      - name: Build and Release
+        run: |
+          make clean
+          make
 
-    - name: Check build artifacts
-      run: |
-        if [ ! -f slock ]; then
-          echo "Build failed: slock binary not found"
-          exit 1
-        fi
+      - name: Create release
+        id: create_release
+        run: |
+          version=$(make print-version)
+          changelog=$(git log --oneline --pretty=format:"* %s (%h)" | head -n 20)
+          echo "Changelog: $changelog" > changelog.txt
 
-    - name: Get version
-      id: get_version
-      run: echo "VERSION=$(make print-version)" >> $GITHUB_OUTPUT
+          gh release create "v${version}" slock changelog.txt --title "Release v${version}" --notes "$changelog"
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.get_version.outputs.VERSION }}
-        release_name: Release ${{ steps.get_version.outputs.VERSION }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./slock
-        asset_name: slock-${{ steps.get_version.outputs.VERSION }}
-        asset_content_type: application/octet-stream
+      - name: Clean up
+        run: |
+          rm -f changelog.txt
