@@ -1,9 +1,10 @@
 # Compiler and flags
 CC := gcc
-OPTIMISATIONS := -march=native -mtune=native -flto=auto -O3
-CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations $(OPTIMISATIONS) -Os
+OPTIMIZATIONS := -march=native -mtune=native -flto=auto -O3
+CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations $(OPTIMIZATIONS) -Os
 CPPFLAGS := -I/usr/include/freetype2 -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L
-LDFLAGS := -L/usr/X11R6/lib -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2 -lfreetype
+LDFLAGS := -L/usr/X11R6/lib
+LDLIBS := -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2 -lfreetype -lpam
 
 # Directories
 SRC_DIR := src
@@ -21,7 +22,7 @@ TARGET := slock
 CURRENT_DATE := $(shell date +"%Y.%m.%d")
 GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_VERSION := $(CURRENT_DATE).$(GIT_HASH)
-CFLAGS += -DBUILD_VERSION=\"$(BUILD_VERSION)\"
+CPPFLAGS += -DBUILD_VERSION=\"$(BUILD_VERSION)\"
 
 # Installation paths
 PREFIX ?= /usr/local
@@ -33,11 +34,11 @@ all: $(TARGET)
 
 # Linking
 $(TARGET): $(OBJ) | $(OBJ_DIR)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/config.h | $(OBJ_DIR)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 # Create object directory
 $(OBJ_DIR):
@@ -47,8 +48,7 @@ $(OBJ_DIR):
 .PHONY: install
 install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)
-	chmod u+s $(DESTDIR)$(BINDIR)/$(TARGET)
+	install -m 4755 $(TARGET) $(DESTDIR)$(BINDIR)
 
 # Uninstall
 .PHONY: uninstall

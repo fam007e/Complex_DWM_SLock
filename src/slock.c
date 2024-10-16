@@ -25,17 +25,71 @@ static XftColor xft_color;
 
 static int failed_attempts = 0;
 
+static char *password;
+
 static int conv(int num_msg, const struct pam_message **msg,
                 struct pam_response **resp, void *appdata_ptr) {
-    // Implement PAM conversation function
-    // This is a simplified version and needs to be expanded
+    int i;
+    struct pam_response *reply = NULL;
+
+    if (num_msg <= 0 || num_msg > PAM_MAX_NUM_MSG)
+        return PAM_CONV_ERR;
+
+    if ((reply = calloc(num_msg, sizeof(struct pam_response))) == NULL)
+        return PAM_BUF_ERR;
+
+    for (i = 0; i < num_msg; i++) {
+        switch (msg[i]->msg_style) {
+            case PAM_PROMPT_ECHO_OFF:
+                reply[i].resp = strdup(password);
+                if (reply[i].resp == NULL)
+                    goto fail;
+                break;
+            case PAM_ERROR_MSG:
+                fprintf(stderr, "%s\n", msg[i]->msg);
+                break;
+            case PAM_TEXT_INFO:
+                printf("%s\n", msg[i]->msg);
+                break;
+            default:
+                goto fail;
+        }
+    }
+
+    *resp = reply;
     return PAM_SUCCESS;
+
+fail:
+    for (i = 0; i < num_msg; i++) {
+        if (reply[i].resp != NULL) {
+            memset(reply[i].resp, 0, strlen(reply[i].resp));
+            free(reply[i].resp);
+        }
+    }
+    free(reply);
+    return PAM_CONV_ERR;
 }
 
-static int verify_password(const char *password) {
-    // Implement password verification using PAM
-    // This is a simplified version and needs to be expanded
-    return 1; // Return 1 for success, 0 for failure
+static int verify_password(const char *passwd) {
+    pam_handle_t *pamh = NULL;
+    struct pam_conv pamc = {conv, NULL};
+    int retval;
+
+    password = (char *)passwd;
+
+    retval = pam_start("slock", getenv("USER"), &pamc, &pamh);
+    if (retval != PAM_SUCCESS)
+        goto end;
+
+    retval = pam_authenticate(pamh, 0);
+    if (retval != PAM_SUCCESS)
+        goto end;
+
+    retval = pam_acct_mgmt(pamh, 0);
+
+end:
+    pam_end(pamh, retval);
+    return (retval == PAM_SUCCESS) ? 1 : 0;
 }
 
 static void die(const char *errstr, ...) {
@@ -107,7 +161,7 @@ static void draw_lock_screen() {
 
 int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "-v") == 0) {
-        printf("slock-"VERSION"\n");
+        printf("slock-%s\n", VERSION);
         return 0;
     } else if (argc != 1) {
         die("usage: slock [-v]\n");
@@ -133,7 +187,7 @@ int main(int argc, char **argv) {
                 } else {
                     failed_attempts++;
                     if (failed_attempts >= MAX_ATTEMPTS) {
-                        system("systemctl restart sddm.service");
+                        (void)system("systemctl restart sddm.service");
                         return 1;
                     }
                     len = 0;
