@@ -8,8 +8,9 @@
 - **Time Display**: Shows the current time in bold at the bottom left corner.
 - **User Information**: Displays the username and a password prompt.
 - **Responsive UI**: Provides feedback on incorrect password attempts.
-- **Security**: Automatically reboots after 10 failed attempts, restarts SDDM, and disables all TTYs.
+- **Flexible Security**: Attempts to restart the display manager after multiple failed attempts, with fallback to TTY.
 - **Automatic Versioning**: Includes build date and Git commit hash in version information.
+- **Display Manager Compatibility**: Works with various display managers (SDDM, LightDM, GDM, XDM) and provides TTY fallback.
 
 ## Installation
 
@@ -20,7 +21,7 @@
 - Imlib2 library
 - C Compiler (GCC or Clang)
 - Make
-- Git (for version information, optional)
+- Git (for version information)
 - PAM (Pluggable Authentication Modules) for password handling
 
 ### Building from Source
@@ -74,14 +75,9 @@ slock
 
 ## Security Considerations
 
-- The screen locker binary is installed with setuid permissions to allow it to run with elevated privileges. This is necessary for it to effectively lock the screen and handle system-level events.
-- Disable virtual terminal switching and the X server restart key combination in your `xorg.conf` for increased security:
-  ```
-  Section "ServerFlags"
-    Option "DontVTSwitch" "True"
-    Option "DontZap" "True"
-  EndSection
-  ```
+- The screen locker binary is installed with setuid permissions to allow it to run with elevated privileges.
+- The program attempts to restart the display manager after multiple failed attempts, falling back to TTY if unsuccessful.
+- Consider disabling virtual terminal switching and the X server restart key combination in your `xorg.conf` for increased security.
 
 ## Customization
 
@@ -93,7 +89,8 @@ slock
 - **Screen Does Not Lock**: Ensure all dependencies are installed and the binary has the necessary permissions.
 - **Blur Effect Not Visible**: Verify that your system supports the required X extensions and Imlib2 is properly installed.
 - **Compilation Errors**: Make sure all required development libraries are installed.
-- **Version Information Incorrect**: Ensure Git is installed and you're in a Git repository, or the fallback "unknown" will be used for the commit hash.
+- **Version Information Incorrect**: Ensure Git is installed and you're in a Git repository.
+- **Display Manager Issues**: Check if your display manager is supported. The program will attempt to fall back to TTY if no supported display manager is found.
 
 ## Contributing
 
@@ -101,15 +98,8 @@ Contributions are welcome! Feel free to submit a pull request or open an issue t
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the [license](LICENSE).
 
 ## Acknowledgments
 
-I would like to thank the following projects and resources that inspired and aided in the development of `Complex_DWM_SLock`:
-
-- [slock](https://tools.suckless.org/slock/) - The simple X screen locker that served as the base and inspiration for this project.
-- [dwm](https://dwm.suckless.org/) - The dynamic window manager that seamlessly integrates with `slock`.
-- [X11](https://www.x.org/wiki/) - The X Window System that provides the underlying graphical environment.
-- [MIT License](LICENSE) - For the open-source licensing model.
-
-Special thanks to the open-source community for their invaluable contributions and support.
+Thanks to the slock, dwm, and X11 projects for inspiration and foundational work in this area. Special thanks to the open-source community for their invaluable contributions and support.
