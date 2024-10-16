@@ -1,4 +1,4 @@
-name: Build Complex SLock
+name: Build and Release Complex SLock
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
 
     - name: Build
       run: make
-      
+
     - name: Check build artifacts
       run: |
         if [ ! -f slock ]; then
@@ -49,8 +49,27 @@ jobs:
           exit 1
         fi
 
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+    - name: Get version
+      id: get_version
+      run: echo "VERSION=$(make print-version)" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: slock-binary
-        path: slock
+        tag_name: v${{ steps.get_version.outputs.VERSION }}
+        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./slock
+        asset_name: slock-${{ steps.get_version.outputs.VERSION }}
+        asset_content_type: application/octet-stream

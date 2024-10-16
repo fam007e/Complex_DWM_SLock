@@ -11,13 +11,13 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <ctype.h>
+#include <errno.h>
 #include "config.h"
 #include "blur.h"
 
 static Display *dpy;
 static int screen;
 static Window root, win;
-static Pixmap pmap;
 static GC gc;
 static XftFont *xft_font;
 static XftDraw *xft_draw;
@@ -159,6 +159,36 @@ static void draw_lock_screen() {
     draw_text("Enter password:", PASSWORD_PROMPT_X, PASSWORD_PROMPT_Y);
 }
 
+static void cleanup() {
+    XftFontClose(dpy, xft_font);
+    XftDrawDestroy(xft_draw);
+    XFreeGC(dpy, gc);
+    XDestroyWindow(dpy, win);
+    XCloseDisplay(dpy);
+}
+
+static void restart_display_manager() {
+    const char *display_managers[] = {
+        "systemctl restart sddm.service",
+        "systemctl restart lightdm.service",
+        "systemctl restart gdm.service",
+        "systemctl restart xdm.service",
+        NULL
+    };
+
+    for (int i = 0; display_managers[i] != NULL; i++) {
+        if (system(display_managers[i]) == 0) {
+            return;  // Successfully restarted a display manager
+        }
+    }
+
+    // Fallback to TTY1 if no display manager could be restarted
+    fprintf(stderr, "No display manager found. Falling back to TTY1.\n");
+    if (system("chvt 1") != 0) {
+        fprintf(stderr, "Failed to switch to TTY1: %s\n", strerror(errno));
+    }
+}
+
 int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "-v") == 0) {
         printf("slock-%s\n", VERSION);
@@ -183,11 +213,13 @@ int main(int argc, char **argv) {
             if (ksym == XK_Return) {
                 passwd[len] = '\0';
                 if (verify_password(passwd)) {
+                    cleanup();
                     return 0;
                 } else {
                     failed_attempts++;
                     if (failed_attempts >= MAX_ATTEMPTS) {
-                        (void)system("systemctl restart sddm.service");
+                        cleanup();
+                        restart_display_manager();
                         return 1;
                     }
                     len = 0;

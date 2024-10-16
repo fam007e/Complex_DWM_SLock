@@ -66,3 +66,7 @@ debug:
 	@echo "Source files: $(SRC)"
 	@echo "Object files: $(OBJ)"
 	@echo "Build version: $(BUILD_VERSION)"
+
+.PHONY: print-version
+print-version:
+	@echo $(BUILD_VERSION)
