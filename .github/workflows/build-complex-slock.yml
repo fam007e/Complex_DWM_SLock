@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - src/config.h
+      - 'src/**'
+      - 'Makefile'
 
 jobs:
   release:
