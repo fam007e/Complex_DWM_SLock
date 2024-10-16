@@ -1,8 +1,9 @@
 # Compiler and flags
 CC := gcc
-CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os
-CPPFLAGS := -I/usr/include/freetype2
-LDFLAGS := -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2 -lfreetype
+OPTIMISATIONS := -march=native -mtune=native -flto=auto -O3
+CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations $(OPTIMISATIONS) -Os
+CPPFLAGS := -I/usr/include/freetype2 -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L
+LDFLAGS := -L/usr/X11R6/lib -lX11 -lXext -lXrandr -lcrypt -lm -lXft -lfontconfig -lImlib2 -lfreetype
 
 # Directories
 SRC_DIR := src
@@ -36,7 +37,7 @@ $(TARGET): $(OBJ) | $(OBJ_DIR)
 
 # Compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/config.h | $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 # Create object directory
 $(OBJ_DIR):
