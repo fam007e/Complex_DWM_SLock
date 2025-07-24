@@ -89,14 +89,20 @@ static int verify_password(const char *passwd) {
 
 end:
     pam_end(pamh, retval);
+    if (password) {
+        memset(password, 0, strlen(password));
+    }
     return (retval == PAM_SUCCESS) ? 1 : 0;
 }
+
+static void cleanup(void);
 
 static void die(const char *errstr, ...) {
     va_list ap;
     va_start(ap, errstr);
     vfprintf(stderr, errstr, ap);
     va_end(ap);
+    cleanup();
     exit(1);
 }
 
@@ -189,7 +195,21 @@ static void restart_display_manager() {
     }
 }
 
+#include <signal.h>
+
+static void handle_signal(int sig) {
+    cleanup();
+    exit(1);
+}
+
 int main(int argc, char **argv) {
+    struct sigaction sa;
+    sa.sa_handler = handle_signal;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
     if (argc == 2 && strcmp(argv[1], "-v") == 0) {
         printf("slock-%s\n", VERSION);
         return 0;
@@ -210,6 +230,10 @@ int main(int argc, char **argv) {
         if (ev.type == KeyPress) {
             char buf[32];
             int num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
+            if (IsFunctionKey(ksym) || IsMiscFunctionKey(ksym) || IsKeypadKey(ksym) || IsPFKey(ksym)) {
+                continue;
+            }
+
             if (ksym == XK_Return) {
                 passwd[len] = '\0';
                 if (verify_password(passwd)) {
@@ -223,12 +247,23 @@ int main(int argc, char **argv) {
                         return 1;
                     }
                     len = 0;
+                    memset(passwd, 0, sizeof(passwd));
                 }
             } else if (ksym == XK_Escape) {
                 len = 0;
+                memset(passwd, 0, sizeof(passwd));
             } else if (ksym == XK_BackSpace) {
                 if (len > 0)
-                    len--;
+                    passwd[--len] = '\0';
+            } else if (ksym == XK_Delete) {
+                if (len > 0) {
+                    memmove(&passwd[0], &passwd[1], len - 1);
+                    passwd[--len] = '\0';
+                }
+            } else if (ksym == XK_Home) {
+                // Implement moving cursor to the beginning of the line
+            } else if (ksym == XK_End) {
+                // Implement moving cursor to the end of the line
             } else if (num && !iscntrl((int)buf[0]) && len < sizeof(passwd) - 1) {
                 memcpy(passwd + len, buf, num);
                 len += num;
