@@ -1,2 +1,10 @@
-obj/
+# Compiled binaries and objects
 slock
+obj/
+
+# Packaging files
+pkg/
+src/
+*.pkg.tar.zst
+PKGBUILD
+.SRCINFO

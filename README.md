@@ -60,6 +60,22 @@
     sudo make BINDIR=/home/user/bin install
     ```
 
+### Arch User Repository (AUR)
+
+This project is available on the Arch User Repository as [`complex-dwm-slock-git`](https://aur.archlinux.org/packages/complex-dwm-slock-git).
+
+[![AUR package](https://img.shields.io/aur/version/complex-dwm-slock-git?logo=arch-linux)](https://aur.archlinux.org/packages/complex-dwm-slock-git)
+
+You can install it using your favorite AUR helper, such as `yay` or `paru`:
+
+```bash
+# Using yay
+yay -S complex-dwm-slock-git
+
+# Using paru
+paru -S complex-dwm-slock-git
+```
+
 ## Usage
 
 To lock your screen, simply run the command:
