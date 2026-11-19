@@ -6,43 +6,62 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'assets/**'
       - 'Makefile'
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install dependencies
         run: |
-          sudo apt-get update && sudo apt-get upgrade -y
-          sudo apt-get install -y build-essential libx11-dev libxext-dev libxrandr-dev libxft-dev libimlib2-dev libfreetype6-dev libxinerama-dev libxcb-xinerama0-dev libpam0g-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential \
+            libx11-dev libxext-dev libxrandr-dev libxft-dev libxrender-dev \
+            libimlib2-dev libfreetype6-dev libfontconfig-dev \
+            libxinerama-dev libxcb-xinerama0-dev libpam0g-dev
 
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-get install -y gh
-
-      - name: Authenticate GitHub CLI
-        run: |
-          echo "${{ secrets.SLOCK_TOKEN }}" | gh auth login --with-token
-
-      - name: Build and Release
+      - name: Build
         run: |
           make clean
           make
 
       - name: Create release
-        id: create_release
         run: |
-          version=$(make print-version)
-          changelog=$(git log --oneline --pretty=format:"* %s (%h)" | head -n 20)
-          echo "Changelog: $changelog" > changelog.txt
+          version=$(make -s print-version)
+          tag="v${version}"
 
-          gh release create "v${version}" slock changelog.txt --title "Release v${version}" --notes "$changelog"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists, skipping."
+            exit 0
+          fi
 
-      - name: Clean up
-        run: |
-          rm -f changelog.txt
+          {
+            echo "## Installation notes"
+            echo
+            echo "- The binary is dynamically linked against Ubuntu's current libraries. On other distros, build from source."
+            echo "- slock must be setuid root to work with PAM:"
+            echo "  \`sudo chown root slock && sudo chmod 4755 slock\`"
+            echo "- Place \`avatar.png\` at \`/usr/local/share/slock/avatar.png\`."
+            echo
+            echo "## Changelog"
+            echo
+            git log --pretty=format:"* %s (%h)" -n 20
+          } > release-notes.md
+
+          gh release create "$tag" \
+            slock assets/images/avatar.png \
+            --target "$GITHUB_SHA" \
+            --title "Release ${tag}" \
+            --notes-file release-notes.md

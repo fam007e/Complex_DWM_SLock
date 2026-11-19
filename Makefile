@@ -34,9 +34,9 @@ DATADIR ?= $(PREFIX)/share/slock
 .PHONY: all
 all: $(TARGET)
 
-# Link
+# Link (CFLAGS are passed so -flto=auto applies at link time)
 $(TARGET): $(OBJ) | $(OBJ_DIR)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Compile
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/config.h | $(OBJ_DIR)
@@ -52,7 +52,7 @@ install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 4755 $(TARGET) $(DESTDIR)$(BINDIR)
 	install -d $(DESTDIR)$(DATADIR)
-	install -m 644 assets/images/avatar.png $(DESTDIR)$(DATADIR)/avatar.png
+	install -m 644 $(ASSET_DIR)/images/avatar.png $(DESTDIR)$(DATADIR)/avatar.png
 
 # Remove binary and all installed data assets
 .PHONY: uninstall
