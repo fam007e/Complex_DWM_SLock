@@ -53,7 +53,7 @@ jobs:
             echo "- The binary is dynamically linked against Ubuntu's current libraries. On other distros, build from source."
             echo "- slock must be setuid root to work with PAM:"
             echo "  \`sudo chown root slock && sudo chmod 4755 slock\`"
-            echo "- Place \`avatar.png\` at \`/usr/local/share/slock/avatar.png\`."
+            echo "- Place \`avatar.png\` and \`font.ttf\` in \`/usr/local/share/slock/\`."
             echo
             echo "## Changelog"
             echo
@@ -61,7 +61,7 @@ jobs:
           } > release-notes.md
 
           gh release create "$tag" \
-            slock assets/images/avatar.png \
+            slock assets/images/avatar.png assets/fonts/font.ttf \
             --target "$GITHUB_SHA" \
             --title "Release ${tag}" \
             --notes-file release-notes.md

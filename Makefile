@@ -1,9 +1,14 @@
+# Installation paths
+PREFIX  ?= /usr/local
+BINDIR  ?= $(PREFIX)/bin
+DATADIR ?= $(PREFIX)/share/slock
+
 # Compiler and flags
 CC := gcc
 OPTIMIZATIONS := -flto=auto -O2
-CFLAGS := -std=c99 -pedantic -Wall -Wno-deprecated-declarations $(OPTIMIZATIONS)
-CPPFLAGS := -I/usr/include/freetype2 -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L
-LDFLAGS := -L/usr/X11R6/lib
+CFLAGS += -std=c99 -pedantic -Wall -Wno-deprecated-declarations $(OPTIMIZATIONS)
+CPPFLAGS += -I/usr/include/freetype2 -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L
+LDFLAGS += -L/usr/X11R6/lib
 LDLIBS := -lX11 -lXext -lXrandr -lm -lXft -lfontconfig -lImlib2 -lfreetype -lpam -lXrender
 
 # Directories
@@ -22,12 +27,7 @@ TARGET := slock
 CURRENT_DATE  := $(shell date +"%Y.%m.%d")
 GIT_HASH      := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_VERSION := $(CURRENT_DATE).$(GIT_HASH)
-CPPFLAGS += -DBUILD_VERSION=\"$(BUILD_VERSION)\"
-
-# Installation paths
-PREFIX  ?= /usr/local
-BINDIR  ?= $(PREFIX)/bin
-DATADIR ?= $(PREFIX)/share/slock
+CPPFLAGS += -DBUILD_VERSION=\"$(BUILD_VERSION)\" -DDATADIR=\"$(DATADIR)\"
 
 # ── Targets ────────────────────────────────────────────────────────────────
 
@@ -53,6 +53,7 @@ install: $(TARGET)
 	install -m 4755 $(TARGET) $(DESTDIR)$(BINDIR)
 	install -d $(DESTDIR)$(DATADIR)
 	install -m 644 $(ASSET_DIR)/images/avatar.png $(DESTDIR)$(DATADIR)/avatar.png
+	install -m 644 $(ASSET_DIR)/fonts/font.ttf $(DESTDIR)$(DATADIR)/font.ttf
 
 # Remove binary and all installed data assets
 .PHONY: uninstall
