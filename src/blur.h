@@ -3,10 +3,14 @@
 
 #include <X11/Xlib.h>
 
-// Apply blur effect to the given image
-void apply_blur(XImage *image, int radius);
+/* Blur in place. The image is shrunk by `scale`, blurred with `radius`
+ * (3-pass box ≈ gaussian) and bilinearly scaled back up. */
+void apply_blur(XImage *image, int scale, int radius);
 
-// Capture the current screen content
+/* Uniform darkening plus a vignette towards the corners. */
+void apply_dim(XImage *image, float dim, float vignette);
+
+/* Capture the whole root window. */
 XImage *capture_screen(Display *dpy, Window root);
 
-#endif // BLUR_H
+#endif /* BLUR_H */
